@@ -9,16 +9,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /bin/uv
+COPY pyproject.toml uv.lock ./
 COPY app ./app
 COPY transfermarkt_api ./transfermarkt_api
 COPY README.md LICENSE ./
 
-# uv is mounted only for this step, so it is not part of the final image
-RUN --mount=from=ghcr.io/astral-sh/uv:0.12.23,source=/uv,target=/bin/uv \
-    --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    uv sync --frozen --no-dev --extra server --no-editable
+# Use COPY instead of build mounts for Railway's Dockerfile builder.
+RUN uv sync --frozen --no-dev --extra server --no-editable --no-cache
 
 RUN useradd --create-home appuser
 USER appuser
